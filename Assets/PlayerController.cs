@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 
 
@@ -11,6 +12,7 @@ public class PlayerController : MonoBehaviour
 
     private CharacterController controller;
 
+    public Transform cameraTransform;
     private Vector2 moveInput;
     private bool jumpQueued;
     private float verticalVelocity;
@@ -54,18 +56,33 @@ public class PlayerController : MonoBehaviour
         }
         jumpQueued = false;
 
+        //KAMERA-BASERET MOVEMENT
         verticalVelocity += gravity * Time.deltaTime;
+        Vector3 forward = cameraTransform.forward;
+        Vector3 right = cameraTransform.right;
+        forward.y = 0f;
+        right.y = 0f;
 
-        Vector3 move = new Vector3(moveInput.x, 0f, moveInput.y);
-        Vector3 velocity = move * moveSpeed;
+
+        Vector3 moveDirection = forward * moveInput.y + right * moveInput.x;
+        if (moveDirection.magnitude > 1f)
+            moveDirection.Normalize();
+
+        //Vector3 move = new Vector3(moveInput.x, 0f, moveInput.y); IKKE KAMERA-BASERET
+
+        Vector3 velocity = moveDirection * moveSpeed;
         velocity.y = verticalVelocity;
 
         controller.Move(velocity * Time.deltaTime);
-        if (move.magnitude > 0.1f)
+
+        //Prøv uden denne kode først
+        if (moveDirection.magnitude > 0.1f)
         {
-            Quaternion targetRotation = Quaternion.LookRotation(move);
+            Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
             transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, 10f * Time.deltaTime);
         }
+        //STOP
+
         animator.SetFloat("Speed", moveInput.magnitude);
         animator.SetBool("Grounded", controller.isGrounded);
         animator.SetFloat("VerticalVelocity", verticalVelocity);
