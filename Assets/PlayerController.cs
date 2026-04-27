@@ -6,6 +6,7 @@ public class PlayerController : MonoBehaviour
     public float moveSpeed = 5f;
     public float jumpHeight = 1.5f;
     public float Gravity = -20f;
+    private bool isGrounded;
     public Animator animator;
 
     private CharacterController controller;
@@ -19,6 +20,10 @@ public class PlayerController : MonoBehaviour
     private int currentJumps;
     private bool wasGrounded;
 
+    //Platform variables
+
+    public Transform currentPlatform;
+    private Vector3 lastPlatformPosition;
     private void Awake()
     {
         animator = GetComponent<Animator>();
@@ -40,8 +45,14 @@ public class PlayerController : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        //Jumping & grounding logic
-        bool isGrounded = controller.isGrounded;
+        isGrounded = controller.isGrounded;
+        CheckforPlatform();
+        VerticalMovement();
+        Movement();
+        
+    }
+    private void VerticalMovement()
+    {
         if (isGrounded && verticalVelocity < 0)
         {
             verticalVelocity = -2f;
@@ -56,11 +67,18 @@ public class PlayerController : MonoBehaviour
             currentJumps++;
             verticalVelocity = Mathf.Sqrt(jumpHeight * -2f * Gravity);
             animator.SetTrigger("Jump");
+            
         }
         jumpQueued = false;
         wasGrounded = isGrounded; //Der vil være en halv frame hvor wasGrounded og isGrounded er det modsatte af hinanden - på det tidspunkt aktiveres if statement 2.
 
-        //Movement logic
+        //Animation logic
+        animator.SetBool("Grounded", isGrounded);
+        animator.SetFloat("VerticalVelocity", verticalVelocity);
+
+    }
+    private void Movement()
+    {
         Vector3 forward = cameraTransform.forward;
         Vector3 right = cameraTransform.right;
         forward.y = 0;
@@ -74,11 +92,15 @@ public class PlayerController : MonoBehaviour
         {
             MoveDirection.Normalize();
         }
-
         Vector3 velocity = MoveDirection * moveSpeed;
+        
+       
+        
         verticalVelocity += Gravity * Time.deltaTime;
         velocity.y = verticalVelocity;
-        controller.Move(velocity * Time.deltaTime);
+        controller.Move(velocity * Time.deltaTime + PlatformMovement());
+        //PlatformMovement();
+
 
         //Rotation logic
         if (MoveDirection.magnitude > 0.1f)
@@ -89,8 +111,39 @@ public class PlayerController : MonoBehaviour
 
         //Animation logic
         animator.SetFloat("Speed", MoveDirection.magnitude);
-        animator.SetBool("Grounded", isGrounded);
-        animator.SetFloat("VerticalVelocity", verticalVelocity);
-
+    }
+    private void CheckforPlatform()
+    {
+        RaycastHit hit;
+        
+        if (Physics.Raycast(transform.position, Vector3.down, out hit, 0.3f))
+        {
+            if (hit.collider.TryGetComponent<MovingPlatform>(out var platform))
+            {
+                if (currentPlatform != platform.transform)
+                {
+                    currentPlatform = platform.transform;
+                    lastPlatformPosition = currentPlatform.position;
+                }
+                return;
+            }
+        }
+        // Only clear if we truly lost the platform
+        currentPlatform = null;
+    }
+    private Vector3 PlatformMovement()
+    {
+        if (currentPlatform != null && isGrounded)
+        {
+            Vector3 platformMovement = currentPlatform.position - lastPlatformPosition;
+            lastPlatformPosition = currentPlatform.position;
+            return platformMovement;
+        }
+        else
+        {
+            return Vector3.zero;
+        }
     }
 }
+
+   
