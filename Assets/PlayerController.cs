@@ -10,9 +10,14 @@ public class PlayerController : MonoBehaviour
 
     private CharacterController controller;
     private Vector2 moveInput;
-    private int jumpQueued = 0;
     private float verticalVelocity;
     private Transform cameraTransform;
+
+    //Jump variables
+    private bool jumpQueued = false;
+    public int maxJumps = 2;
+    private int currentJumps;
+    private bool wasGrounded;
 
     private void Awake()
     {
@@ -28,29 +33,32 @@ public class PlayerController : MonoBehaviour
     {
         if (context.started)
         {
-            jumpQueued++;
+            jumpQueued = true;
         }
 
     }
     // Update is called once per frame
     void Update()
     {
+        //Jumping & grounding logic
         bool isGrounded = controller.isGrounded;
-
         if (isGrounded && verticalVelocity < 0)
         {
             verticalVelocity = -2f;
+            currentJumps = 0;
         }
-        if (jumpQueued > 0 && jumpQueued < 3)
+        if (!isGrounded && wasGrounded && verticalVelocity <= 0)
         {
+            currentJumps = 1;
+        }
+        if (jumpQueued == true && currentJumps < maxJumps)
+        {
+            currentJumps++;
             verticalVelocity = Mathf.Sqrt(jumpHeight * -2f * Gravity);
             animator.SetTrigger("Jump");
         }
-        if (isGrounded)
-        {
-            jumpQueued = 0;
-        }
-
+        jumpQueued = false;
+        wasGrounded = isGrounded; //Der vil være en halv frame hvor wasGrounded og isGrounded er det modsatte af hinanden - på det tidspunkt aktiveres if statement 2.
 
         //Movement logic
         Vector3 forward = cameraTransform.forward;
