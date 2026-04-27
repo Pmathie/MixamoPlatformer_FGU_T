@@ -311,11 +311,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: edc575abf01627542aaf4572b5b4506a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerController
-  animator: {fileID: 361486878}
   moveSpeed: 5
   jumpHeight: 1.5
-  gravity: -20
-  cameraTransform: {fileID: 330585546}
+  Gravity: -20
+  animator: {fileID: 361486878}
+  maxJumps: 2
 --- !u!143 &361486881
 CharacterController:
   m_ObjectHideFlags: 0
