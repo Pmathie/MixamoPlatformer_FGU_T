@@ -1,12 +1,13 @@
-using System;
+using Unity.Cinemachine;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Serialization;
 
 public class PlayerController : MonoBehaviour
 {
     public float moveSpeed = 5f;
     public float jumpHeight = 1.5f;
-    public float Gravity = -20f;
+    public float gravity = -20f;
     public Animator animator;
 
     private CharacterController controller;
@@ -18,8 +19,8 @@ public class PlayerController : MonoBehaviour
     public int maxJumps = 2;
     private int jumpCount;
 
-    private Transform currentPlatform;
-    private Vector3 lastPlatformPosition;
+    private MovingPlatform currentPlatform;
+  
 
     private void Awake()
     {
@@ -62,7 +63,7 @@ public class PlayerController : MonoBehaviour
         if (jumpQueued && jumpCount < maxJumps)
         {
             jumpCount++;
-            verticalVelocity = Mathf.Sqrt(jumpHeight * -2f * Gravity);
+            verticalVelocity = Mathf.Sqrt(jumpHeight * -2f * gravity);
             animator.SetTrigger("Jump");
         }
         jumpQueued = false;
@@ -77,60 +78,48 @@ public class PlayerController : MonoBehaviour
         right.y = 0;
         forward.Normalize();
         right.Normalize();
-        Vector3 MoveDirection = moveInput.x * right + moveInput.y * forward;
-        Debug.Log($"MoveDirection: {MoveDirection.magnitude}");
+        Vector3 moveDirection = moveInput.x * right + moveInput.y * forward;
 
-        if (MoveDirection.magnitude > 1f)
+        if (moveDirection.magnitude > 1f)
         {
-            MoveDirection.Normalize();
+            moveDirection.Normalize();
         }
 
-        Vector3 velocity = MoveDirection * moveSpeed;
-        verticalVelocity += Gravity * Time.deltaTime;
+        Vector3 velocity = moveDirection * moveSpeed;
+        verticalVelocity += gravity * Time.deltaTime;
         velocity.y = verticalVelocity;
-        controller.Move(velocity * Time.deltaTime + PlatformMovement());
+        if (currentPlatform != null)
+        {
+            controller.Move(currentPlatform.DeltaPosition);
+        }
+        
+        controller.Move(velocity * Time.deltaTime);
 
         //Rotation logic
-        if (MoveDirection.magnitude > 0.1f)
+        if (moveDirection.magnitude > 0.1f)
         {
-            Quaternion targetRotation = Quaternion.LookRotation(MoveDirection);
+            Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
             transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, 10f * Time.deltaTime);
         }
-        animator.SetFloat("Speed", MoveDirection.magnitude);
+        animator.SetFloat("Speed", moveDirection.magnitude);
         animator.SetFloat("VerticalVelocity", verticalVelocity);
     }
     private void CheckForPlatform()
     {
         RaycastHit hit;
+        
         if (Physics.Raycast(transform.position, Vector3.down, out hit, 0.5f))
         {
             if(hit.collider.TryGetComponent<MovingPlatform>(out var platform))
             {
-                currentPlatform = platform.transform;
+                currentPlatform = platform;
                 
-                if (lastPlatformPosition == Vector3.zero)
-                {
-                    lastPlatformPosition = currentPlatform.position;
-                }   
+  
+                return;
             }
         }
-        else
-        {
-            currentPlatform = null;
-        }       
+
+        currentPlatform = null;
     }
-    private Vector3 PlatformMovement()
-    {
-        if (currentPlatform != null)
-        {
-            Vector3 platformMovement = currentPlatform.position - lastPlatformPosition;
-            lastPlatformPosition = currentPlatform.position;
-            return platformMovement;
-        }
-        else
-        {
-            lastPlatformPosition = Vector3.zero;
-            return Vector3.zero;
-        }
-    }
+    
 }
