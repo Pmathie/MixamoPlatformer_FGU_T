@@ -5,24 +5,31 @@ public class MovingPlatform : MonoBehaviour
     public Transform pointA;
     public Transform pointB;
     public float speed = 2f;
-    private Vector3 target;
-    private Rigidbody rb;
+    private Transform target;
 
-    private void Start()
+    // Start is called once before the first execution of Update after the MonoBehaviour is created
+    void Start()
     {
-        rb = GetComponent<Rigidbody>();
-        rb.isKinematic = true; // Moves via script, not forces
-        target = pointB.position;
+        target = pointB;
+        transform.position = pointA.position;
     }
 
-    private void FixedUpdate() // Physics moves belong in FixedUpdate
+    // Update is called once per frame
+    void Update()
     {
-        Vector3 newPosition = Vector3.MoveTowards(rb.position, target, speed * Time.fixedDeltaTime);
-        rb.MovePosition(newPosition);
-
-        if (Vector3.Distance(rb.position, target) < 0.05f)
+        transform.position = Vector3.MoveTowards(transform.position, target.position, speed * Time.deltaTime);
+        
+        if(Vector3.Distance(transform.position, target.position) < 0.1f)
         {
-            target = (target == pointA.position) ? pointB.position : pointA.position;
+            if (target == pointB)
+            {
+                target = pointA;
+            }
+            else
+            {
+                target = pointB;
+            }
+
         }
     }
 }
